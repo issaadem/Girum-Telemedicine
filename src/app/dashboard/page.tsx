@@ -3,8 +3,15 @@ import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
 import Link from "next/link"
 
+interface Appointment {
+  id: string
+  scheduled_at: string
+  status: string
+  profiles: { full_name: string } | null
+}
+
 export default function DoctorDashboard() {
-  const [appointments, setAppointments] = useState<any[]>([])
+  const [appointments, setAppointments] = useState<Appointment[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
 
@@ -31,7 +38,7 @@ export default function DoctorDashboard() {
       if (error) {
         setError(error.message)
       } else {
-        setAppointments(data || [])
+        setAppointments((data as unknown as Appointment[]) || [])
       }
       setLoading(false)
     }

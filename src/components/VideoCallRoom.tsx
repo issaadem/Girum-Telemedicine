@@ -6,16 +6,30 @@ interface VideoCallRoomProps {
   displayName: string
 }
 
+interface JitsiMeetAPI {
+  dispose: () => void
+}
+
+interface JitsiMeetExternalAPIConstructor {
+  new (domain: string, options: Record<string, unknown>): JitsiMeetAPI
+}
+
+declare global {
+  interface Window {
+    JitsiMeetExternalAPI?: JitsiMeetExternalAPIConstructor
+  }
+}
+
 export default function VideoCallRoom({ roomId, displayName }: VideoCallRoomProps) {
   const containerRef = useRef<HTMLDivElement>(null)
-  const apiRef = useRef<any>(null)
+  const apiRef = useRef<JitsiMeetAPI | null>(null)
 
   useEffect(() => {
     let cancelled = false
 
     function initJitsi() {
       if (cancelled || apiRef.current || !containerRef.current) return
-      const JitsiMeetExternalAPI = (window as any).JitsiMeetExternalAPI
+      const JitsiMeetExternalAPI = window.JitsiMeetExternalAPI
       if (!JitsiMeetExternalAPI) return
 
       apiRef.current = new JitsiMeetExternalAPI("meet.jit.si", {
@@ -29,7 +43,7 @@ export default function VideoCallRoom({ roomId, displayName }: VideoCallRoomProp
 
     const existingScript = document.querySelector('script[src="https://meet.jit.si/external_api.js"]')
 
-    if ((window as any).JitsiMeetExternalAPI) {
+    if (window.JitsiMeetExternalAPI) {
       initJitsi()
     } else if (existingScript) {
       existingScript.addEventListener("load", initJitsi)

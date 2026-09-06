@@ -1,22 +1,26 @@
 ﻿"use client"
 import { useState, useEffect } from "react"
 import { supabase } from "@/lib/supabase"
-import { useRouter } from "next/navigation"
+
+interface Doctor {
+  id: string
+  profiles: { full_name: string } | null
+  specialties: { name: string } | null
+}
 
 export default function BookAppointmentPage() {
-  const [doctors, setDoctors] = useState<any[]>([])
+  const [doctors, setDoctors] = useState<Doctor[]>([])
   const [doctorId, setDoctorId] = useState("")
   const [scheduledAt, setScheduledAt] = useState("")
   const [error, setError] = useState("")
   const [success, setSuccess] = useState(false)
-  const router = useRouter()
 
   useEffect(() => {
     async function loadDoctors() {
       const { data } = await supabase
         .from("doctors")
         .select(`id, profiles ( full_name ), specialties ( name )`)
-      setDoctors(data || [])
+      setDoctors((data as unknown as Doctor[]) || [])
     }
     loadDoctors()
   }, [])
@@ -49,7 +53,7 @@ export default function BookAppointmentPage() {
     return (
       <div className="max-w-md mx-auto p-8 text-center">
         <h1 className="text-xl font-bold mb-2">Appointment requested!</h1>
-        <p>We'll notify you once the doctor confirms.</p>
+        <p>We&apos;ll notify you once the doctor confirms.</p>
       </div>
     )
   }
