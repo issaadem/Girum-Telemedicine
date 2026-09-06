@@ -45,6 +45,9 @@ export default function DoctorDashboard() {
   }
 
   useEffect(() => {
+    // loadAppointments sets state only after an await, and is intentionally
+    // reused both here (initial load) and in updateStatus (refresh after action).
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadAppointments()
   }, [])
 
