@@ -7,6 +7,7 @@ interface Appointment {
   id: string
   scheduled_at: string
   status: string
+  patient_id: string
   profiles: { full_name: string } | null
 }
 
@@ -29,6 +30,7 @@ export default function DoctorDashboard() {
         id,
         scheduled_at,
         status,
+        patient_id,
         profiles ( full_name )
       `)
       .eq("doctor_id", user.id)
@@ -82,6 +84,14 @@ export default function DoctorDashboard() {
                     Cancel
                   </button>
                 </>
+              )}
+              {appt.status === "confirmed" && (
+                <Link
+                  href={`/prescribe/${appt.id}?patientId=${appt.patient_id}`}
+                  className="bg-purple-600 text-white px-3 py-2 rounded text-sm"
+                >
+                  Prescribe
+                </Link>
               )}
               <Link href={`/call/${appt.id}`} className="bg-blue-600 text-white px-4 py-2 rounded text-sm">
                 Join Call
