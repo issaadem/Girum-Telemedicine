@@ -1,6 +1,7 @@
-﻿"use client"
+"use client"
 import { useState, useEffect } from "react"
 import { supabase } from "@/lib/supabase"
+import { processPayment } from "@/lib/payments"
 
 interface Doctor {
   id: string
@@ -8,12 +9,14 @@ interface Doctor {
   specialties: { name: string } | null
 }
 
+const CONSULTATION_FEE = 500
+
 export default function BookAppointmentPage() {
   const [doctors, setDoctors] = useState<Doctor[]>([])
   const [doctorId, setDoctorId] = useState("")
   const [scheduledAt, setScheduledAt] = useState("")
   const [error, setError] = useState("")
-  const [success, setSuccess] = useState(false)
+  const [step, setStep] = useState<"form" | "paying" | "done">("form")
 
   useEffect(() => {
     async function loadDoctors() {
@@ -35,32 +38,60 @@ export default function BookAppointmentPage() {
       return
     }
 
-    const { error } = await supabase.from("appointments").insert({
-      patient_id: user.id,
-      doctor_id: doctorId,
-      scheduled_at: scheduledAt,
-      status: "pending"
+    const { data: appointment, error: apptError } = await supabase
+      .from("appointments")
+      .insert({
+        patient_id: user.id,
+        doctor_id: doctorId,
+        scheduled_at: scheduledAt,
+        status: "pending"
+      })
+      .select("id")
+      .single()
+
+    if (apptError || !appointment) {
+      setError(apptError?.message || "Could not create appointment.")
+      return
+    }
+
+    setStep("paying")
+
+    const result = await processPayment({
+      appointmentId: appointment.id,
+      patientId: user.id,
+      amount: CONSULTATION_FEE,
     })
 
-    if (error) {
-      setError(error.message)
-    } else {
-      setSuccess(true)
+    if (!result.success) {
+      setError(result.error || "Payment failed.")
+      setStep("form")
+      return
     }
+
+    setStep("done")
   }
 
-  if (success) {
+  if (step === "done") {
     return (
       <div className="max-w-md mx-auto p-8 text-center">
-        <h1 className="text-xl font-bold mb-2">Appointment requested!</h1>
+        <h1 className="text-xl font-bold mb-2">Appointment booked and paid!</h1>
         <p>We&apos;ll notify you once the doctor confirms.</p>
+      </div>
+    )
+  }
+
+  if (step === "paying") {
+    return (
+      <div className="max-w-md mx-auto p-8 text-center">
+        <p>Processing payment...</p>
       </div>
     )
   }
 
   return (
     <div className="max-w-md mx-auto p-8">
-      <h1 className="text-2xl font-bold mb-6">Book an Appointment</h1>
+      <h1 className="text-2xl font-bold mb-2">Book an Appointment</h1>
+      <p className="text-gray-500 mb-6">Consultation fee: {CONSULTATION_FEE} ETB</p>
       <form onSubmit={handleBooking} className="space-y-4">
         <select
           value={doctorId}
@@ -71,7 +102,7 @@ export default function BookAppointmentPage() {
           <option value="">Select a doctor</option>
           {doctors.map((doc) => (
             <option key={doc.id} value={doc.id}>
-              {doc.profiles?.full_name} — {doc.specialties?.name}
+              {doc.profiles?.full_name}  {doc.specialties?.name}
             </option>
           ))}
         </select>
@@ -84,7 +115,7 @@ export default function BookAppointmentPage() {
         />
         {error && <p className="text-red-600 text-sm">{error}</p>}
         <button type="submit" className="w-full bg-blue-600 text-white rounded p-2">
-          Request Appointment
+          Book &amp; Pay {CONSULTATION_FEE} ETB
         </button>
       </form>
     </div>
